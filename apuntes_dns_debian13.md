@@ -1,12 +1,11 @@
-# 📝 MIS APUNTES: CONFIGURAR DNS BIND9 EN DEBIAN 13 (TRIXIE)
+# MIS APUNTES: CONFIGURAR DNS BIND9 EN DEBIAN 13 (TRIXIE)
 
-## 📌 1. Mi Máquina Virtual (La Maqueta)
-*   **SO:** Debian 13 (Trixie).
-*   **Red en VirtualBox:** Red NAT *(necesario para tener internet y poder descargar los paquetes sin que se pegue con la red de casa)*.
+
+*   **Red en VirtualBox:** Red NAT
 *   **Hardware:** 25GB de disco y 2GB de RAM.
 *   **IP del Servidor:** Tiene que ser **Estática (Fija)** porque un servidor no puede estar cambiando de IP.
 
-### ⚠️ Los dos fallos del principio (¡Que no se me olviden!)
+### Los dos fallos del principio 
 1.  **Error de `sudo`:** Mi usuario `dragos` no tenía permisos de administrador. 
     *   *Cómo lo arreglé:* Entré como root con `su -`, metí a mi usuario en el grupo con `usermod -aG sudo dragos` y **reinicié la máquina** (`reboot`) para que se aplicaran los cambios.
 2.  **Error de `Destination Host Unreachable` (No hacía ping):** No tenía internet en la máquina virtual.
@@ -14,7 +13,7 @@
 
 ---
 
-## 📥 2. Instalar el Servidor DNS (Bind9)
+## 2. Instalar el Servidor DNS (Bind9)
 **¿Qué es BIND9?** Es el programa clásico que se usa en Linux para que la máquina funcione como un servidor DNS. Lleva usándose un montón de años en internet.
 
 *   *El comando correcto para instalarlo es:*
@@ -25,10 +24,8 @@ sudo apt install bind9 bind9-utils
 
 ---
 
-## ⚙️ 3. Poner la IP Fija
+## 3. Poner la IP Fija
 Editamos el archivo `/etc/network/interfaces` para quitar el DHCP automático y dejar una IP fija para nuestra práctica:
-
-*(Primero miré cómo se llamaba mi tarjeta de red con `ip a`, que en mi caso es `enp0s3`).*
 
 ```ini
 # Archivo: /etc/network/interfaces
@@ -46,7 +43,7 @@ iface enp0s3 inet static
 
 ---
 
-## 🛠️ 4. Configurar Bind9 (Paso a paso)
+## 4. Configurar Bind9 (Paso a paso)
 Casi toda la configuración se hace dentro de la carpeta `/etc/bind/`. Tenemos que tocar tres archivos y crear la carpeta `zones` (`sudo mkdir /etc/bind/zones`).
 
 ### Paso A: Decirle al DNS qué zonas va a controlar (`named.conf.local`)
@@ -65,12 +62,10 @@ zone "6.168.192.in-addr.arpa" {
     file "/etc/bind/zones/db.6.168.192";
 };
 ```
-*   *Truco de examen:* Para comprobar si te has dejado algún punto y coma suelto en este archivo, ejecuta `named-checkconf`. Si no dice nada, vas bien.
-
 ---
 
 ### Paso B: Crear los mapas de la red (Ficheros de Zona)
-Como en Debian 13 venimos sin plantillas, hay que escribir la estructura a mano cuidando mucho los puntos finales de los nombres.
+Como en Debian 13 venimos sin plantillas, hay que escribir la estructura a mano.
 
 #### 1. Fichero de Zona Directa: `/etc/bind/zones/db.haven.local`
 ```text
@@ -109,7 +104,7 @@ $TTL    86400
     *   **in-addr.arpa:** Es la coletilla obligatoria para hacer DNS inverso en IPv4.
     *   **PTR:** Es el registro "puntero". Hace lo contrario que el registro **A**: vincula el último número de la IP (`123`) con el nombre del servidor.
 
-#### 🔍 Comandos para comprobar que las zonas no tengan fallos:
+#### Comandos para comprobar que las zonas no tengan fallos:
 Antes de reiniciar el servicio, ejecuto esto para asegurarme el 10 en la práctica:
 ```bash
 sudo named-checkzone haven.local /etc/bind/zones/db.haven.local
@@ -159,7 +154,7 @@ OPTIONS="-u bind -4"
 
 ---
 
-## 🚀 5. Reiniciar y Probar que Funciona (El momento de la verdad)
+## 5. Reiniciar y Probar que Funciona (El momento de la verdad)
 
 1.  **Reinicio el servicio** para aplicar todo lo que he configurado:
     ```bash
@@ -183,7 +178,7 @@ OPTIONS="-u bind -4"
     nameserver 192.168.6.123
     search myguest.virtualbox.org haven.local
     ```
-    🔒 **¡Paso clave!** Como el NetworkManager o el DHCP de VirtualBox a veces machacan este archivo al reiniciar la red y te borran la configuración, **lo bloqueamos poniéndole el atributo de inmutable**:
+    **¡Paso clave!** Como el NetworkManager o el DHCP de VirtualBox a veces machacan este archivo al reiniciar la red y te borran la configuración, **lo bloqueamos poniéndole el atributo de inmutable**:
     ```bash
     sudo chattr +i /etc/resolv.conf
     ```
